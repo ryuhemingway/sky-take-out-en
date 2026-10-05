@@ -1,0 +1,27 @@
+﻿# Build output
+target/
+*.class
+*.jar
+*.war
+
+# Node
+node_modules/
+frontend/dist/
+user-frontend/dist/
+npm-debug.log*
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local sensitive config (contains real DB password - never commit)
+src/main/resources/application-local.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

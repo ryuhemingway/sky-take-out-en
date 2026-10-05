@@ -1,0 +1,13 @@
+<script setup>
+import{ref,onMounted}from'vue';import{api,json}from'../api';import{RefreshCw,Plus}from'lucide-vue-next'
+const riders=ref([]),deliveries=ref([]),orders=ref([]),form=ref({name:'',phone:''}),selected=ref({})
+async function load(){[riders.value,deliveries.value,orders.value]=await Promise.all([api('/api/admin/delivery/riders'),api('/api/admin/delivery/page'),api('/api/admin/order/page?status=3')])}
+async function add(){await api('/api/admin/delivery/riders',{method:'POST',body:json(form.value)});form.value={name:'',phone:''};load()}
+async function assign(id){if(!selected.value[id])return;await api(`/api/admin/delivery/order/${id}/assign/${selected.value[id]}`,{method:'POST'});load()}
+async function step(id,name){await api(`/api/admin/delivery/order/${id}/${name}`,{method:'PUT'});load()}
+onMounted(load)
+</script>
+<template><div class="page-head"><div><h1>Riders & Delivery</h1><p>Assign riders and track delivery progress</p></div><button class="secondary" @click="load"><RefreshCw :size="17"/>Refresh</button></div>
+<div class="filters"><input v-model="form.name" placeholder="Rider name"><input v-model="form.phone" placeholder="Phone"><button class="primary" @click="add"><Plus :size="16"/>Add Rider</button></div>
+<div class="table-wrap"><table><thead><tr><th>Orders to Deliver</th><th>Address</th><th>Available Rider</th><th>Actions</th></tr></thead><tbody><tr v-for="o in orders"><td>{{o.number}}</td><td>{{o.address}}</td><td><select v-model="selected[o.id]"><option value="">Select</option><option v-for="r in riders.filter(x=>x.status===1)" :value="r.id">{{r.name}} {{r.phone}}</option></select></td><td><button class="text-action" @click="assign(o.id)">Assign</button></td></tr></tbody></table></div>
+<h2>Delivery Records</h2><div class="table-wrap"><table><thead><tr><th>Order No.</th><th>Rider</th><th>Status</th><th>Actions</th></tr></thead><tbody><tr v-for="x in deliveries"><td>{{x.order?.number}}</td><td>{{x.rider?.name}} {{x.rider?.phone}}</td><td>{{({1:'Rider Assigned',2:'On the Way',3:'Delivered'})[x.delivery.status]}}</td><td><button v-if="x.delivery.status===1" class="text-action" @click="step(x.delivery.orderId,'pickup')">Confirm Pickup</button><button v-if="x.delivery.status===2" class="text-action" @click="step(x.delivery.orderId,'delivered')">Confirm Delivery</button></td></tr></tbody></table></div></template>

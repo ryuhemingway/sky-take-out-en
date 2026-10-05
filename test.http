@@ -1,0 +1,380 @@
+@baseUrl = http://localhost:8080
+
+### 1. Admin login, and generate an identifier for this test run
+POST {{baseUrl}}/api/admin/employee/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+> {%
+    client.global.set("admin_token", response.body.data.token);
+    client.global.set("test_suffix", Date.now().toString());
+%}
+
+### 2. Query an enabled dish category and save its actual ID
+GET {{baseUrl}}/api/admin/category/page?type=1
+Authorization: Bearer {{admin_token}}
+
+> {%
+    const category = response.body.data.find(item => item.status === 1);
+    client.global.set("category_id", category.id.toString());
+%}
+
+### 3. Add a test dish
+POST {{baseUrl}}/api/admin/dish
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "name": "API test dish - {{test_suffix}}",
+  "categoryId": {{category_id}},
+  "price": 28.00,
+  "image": "",
+  "description": "Automated API test dish"
+}
+
+> {% client.global.set("dish_id", response.body.data.toString()); %}
+
+### 4. Query the newly added dish and verify it
+GET {{baseUrl}}/api/admin/dish/{{dish_id}}
+Authorization: Bearer {{admin_token}}
+
+
+### 5. Query a dish by ID
+GET {{baseUrl}}/api/admin/dish/{{dish_id}}
+Authorization: Bearer {{admin_token}}
+
+### 6. Update a dish
+PUT {{baseUrl}}/api/admin/dish
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "id": {{dish_id}},
+  "name": "API test dish (edited) - {{test_suffix}}",
+  "categoryId": {{category_id}},
+  "price": 32.00,
+  "image": "",
+  "description": "Update succeeded",
+  "status": 1
+}
+
+### 7. Disable a dish
+PATCH {{baseUrl}}/api/admin/dish/{{dish_id}}/status/0
+Authorization: Bearer {{admin_token}}
+
+### 8. Enable a dish
+PATCH {{baseUrl}}/api/admin/dish/{{dish_id}}/status/1
+Authorization: Bearer {{admin_token}}
+
+### 9. Query an enabled set meal category and save its actual ID
+GET {{baseUrl}}/api/admin/category/page?type=2
+Authorization: Bearer {{admin_token}}
+
+> {%
+    const category = response.body.data.find(item => item.status === 1);
+    client.global.set("setmeal_category_id", category.id.toString());
+%}
+
+### 10. Add a set meal containing the test dish
+POST {{baseUrl}}/api/admin/setmeal
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "name": "API test set meal - {{test_suffix}}",
+  "categoryId": {{setmeal_category_id}},
+  "price": 58.00,
+  "description": "Automated API test set meal",
+  "dishes": [
+    { "dishId": {{dish_id}}, "copies": 1 }
+  ]
+}
+
+> {% client.global.set("setmeal_id", response.body.data.toString()); %}
+
+### 11. Query the newly added set meal and verify it
+GET {{baseUrl}}/api/admin/setmeal/{{setmeal_id}}
+Authorization: Bearer {{admin_token}}
+
+
+### 12. Query the dishes in a set meal
+GET {{baseUrl}}/api/admin/setmeal/{{setmeal_id}}/dishes
+Authorization: Bearer {{admin_token}}
+
+### 13. Customer web UI: query enabled categories (public endpoint)
+GET {{baseUrl}}/api/user/menu/categories?type=1
+
+### 14. Customer web UI: query enabled dishes (public endpoint)
+GET {{baseUrl}}/api/user/menu/dishes?categoryId={{category_id}}
+
+### 15. Customer web UI: query enabled set meals (public endpoint)
+GET {{baseUrl}}/api/user/menu/setmeals?categoryId={{setmeal_category_id}}
+
+### 16. User login, and save the user token
+POST {{baseUrl}}/api/user/login
+Content-Type: application/json
+
+{
+  "username": "dev-user-001",
+  "name": "Test User"
+}
+
+> {%
+    client.global.set("user_token", response.body.data.token);
+%}
+
+### 17. Add a dish to the cart
+POST {{baseUrl}}/api/user/shoppingCart/add
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "dishId": {{dish_id}},
+  "number": 1
+}
+
+### 18. Query the cart
+GET {{baseUrl}}/api/user/shoppingCart/list
+Authorization: Bearer {{user_token}}
+
+### 19. Update the cart quantity
+PUT {{baseUrl}}/api/user/shoppingCart/number
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "dishId": {{dish_id}},
+  "number": 2
+}
+
+### 20. Remove a single item from the cart
+DELETE {{baseUrl}}/api/user/shoppingCart/sub?dishId={{dish_id}}
+Authorization: Bearer {{user_token}}
+
+### 21. Clear the cart
+DELETE {{baseUrl}}/api/user/shoppingCart/clean
+Authorization: Bearer {{user_token}}
+
+### 24. Add a delivery address and save the address ID
+POST {{baseUrl}}/api/user/addressBook
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "consignee": "Zhang San",
+  "sex": "M",
+  "phone": "13800138000",
+  "detail": "1 Test Road",
+  "label": "Home"
+}
+
+> {%
+    client.global.set("address_id", response.body.data.toString());
+%}
+
+### 25. Query the address list
+GET {{baseUrl}}/api/user/addressBook/list
+Authorization: Bearer {{user_token}}
+
+### 26. Query an address by ID
+GET {{baseUrl}}/api/user/addressBook/{{address_id}}
+Authorization: Bearer {{user_token}}
+
+### 27. Update an address
+PUT {{baseUrl}}/api/user/addressBook
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "id": {{address_id}},
+  "consignee": "Zhang San",
+  "sex": "M",
+  "phone": "13900139000",
+  "detail": "2 Test Road",
+  "label": "Work"
+}
+
+### 28. Set as the default address
+PUT {{baseUrl}}/api/user/addressBook/{{address_id}}/default
+Authorization: Bearer {{user_token}}
+
+### 29. Query the default address
+GET {{baseUrl}}/api/user/addressBook/default
+Authorization: Bearer {{user_token}}
+
+### 30. Delete the test address
+DELETE {{baseUrl}}/api/user/addressBook/{{address_id}}
+Authorization: Bearer {{user_token}}
+
+### 31. Create an address for the order test
+POST {{baseUrl}}/api/user/addressBook
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "consignee": "Order Test User",
+  "sex": "M",
+  "phone": "13800138000",
+  "detail": "1 Order Test Road",
+  "label": "Home"
+}
+
+> {%
+    client.global.set("order_address_id", response.body.data.toString());
+%}
+
+### 32. Add the order-test dish to the cart
+POST {{baseUrl}}/api/user/shoppingCart/add
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "dishId": {{dish_id}},
+  "number": 2
+}
+
+### 33. Submit an order
+POST {{baseUrl}}/api/user/order/submit
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "addressBookId": {{order_address_id}},
+  "remark": "Please deliver as soon as possible"
+}
+
+> {%
+    client.global.set("order_id", response.body.data.id.toString());
+    client.global.set("order_number", response.body.data.number);
+%}
+
+### 34. Query my orders
+GET {{baseUrl}}/api/user/order/list
+Authorization: Bearer {{user_token}}
+
+### 35. Query order details
+GET {{baseUrl}}/api/user/order/{{order_id}}
+Authorization: Bearer {{user_token}}
+
+### 36. Clean up the test set meal
+DELETE {{baseUrl}}/api/admin/setmeal/{{setmeal_id}}
+Authorization: Bearer {{admin_token}}
+
+### 37. Clean up the test dish
+DELETE {{baseUrl}}/api/admin/dish/{{dish_id}}
+Authorization: Bearer {{admin_token}}
+
+### 38. User simulates payment for the order (the order must be in Pending Payment status)
+PUT {{baseUrl}}/api/user/order/{{order_id}}/pay
+Authorization: Bearer {{user_token}}
+
+### 39. Admin queries orders awaiting acceptance
+GET {{baseUrl}}/api/admin/order/page?status=2
+Authorization: Bearer {{admin_token}}
+
+### 40. Admin accepts the order
+PUT {{baseUrl}}/api/admin/order/{{order_id}}/confirm
+Authorization: Bearer {{admin_token}}
+
+### 41. Admin starts delivery
+PUT {{baseUrl}}/api/admin/order/{{order_id}}/delivery
+Authorization: Bearer {{admin_token}}
+
+### 42. Admin completes the order
+PUT {{baseUrl}}/api/admin/order/{{order_id}}/complete
+Authorization: Bearer {{admin_token}}
+
+### 43. Admin queries order details
+GET {{baseUrl}}/api/admin/order/{{order_id}}
+Authorization: Bearer {{admin_token}}
+
+### 44. User cancels the order (a Completed order, expected to fail)
+PUT {{baseUrl}}/api/user/order/{{order_id}}/cancel
+Authorization: Bearer {{user_token}}
+
+### 45. Admin queries orders by filters
+GET {{baseUrl}}/api/admin/order/page?status=5&beginTime=2026-01-01T00:00:00&endTime=2099-12-31T23:59:59
+Authorization: Bearer {{admin_token}}
+
+### 46. Admin order statistics
+GET {{baseUrl}}/api/admin/order/statistics?beginTime=2026-01-01T00:00:00&endTime=2099-12-31T23:59:59
+Authorization: Bearer {{admin_token}}
+
+### 47. Query the shop status
+GET {{baseUrl}}/api/shop/status
+
+### 48. Close the shop
+PUT {{baseUrl}}/api/shop/status?status=0
+Authorization: Bearer {{admin_token}}
+
+### 49. Open the shop
+PUT {{baseUrl}}/api/shop/status?status=1
+Authorization: Bearer {{admin_token}}
+
+### 50. User queries currently available coupons
+GET {{baseUrl}}/api/user/coupon/list
+Authorization: Bearer {{user_token}}
+
+### 51. User queries the coupons they have claimed and used
+GET {{baseUrl}}/api/user/coupon/my
+Authorization: Bearer {{user_token}}
+
+### 52. Admin queries coupons
+GET {{baseUrl}}/api/admin/coupon/page
+Authorization: Bearer {{admin_token}}
+
+### 53. Admin adds a test coupon
+POST {{baseUrl}}/api/admin/coupon
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "code": "TEST{{test_suffix}}",
+  "name": "Test coupon",
+  "discountAmount": 3,
+  "thresholdAmount": 20,
+  "totalStock": 100,
+  "startTime": "2026-01-01T00:00:00",
+  "endTime": "2099-12-31T23:59:59"
+}
+
+### 54. Admin queries the rider list
+GET {{baseUrl}}/api/admin/delivery/riders
+Authorization: Bearer {{admin_token}}
+
+> {%
+    const rider = response.body.data.find(item => item.status === 1);
+    if (rider) client.global.set("rider_id", rider.id.toString());
+%}
+
+### 55. Assign a rider to an accepted order (the order for order_id must be in status 3, Accepted)
+POST {{baseUrl}}/api/admin/delivery/order/{{order_id}}/assign/{{rider_id}}
+Authorization: Bearer {{admin_token}}
+
+### 56. Rider confirms pickup
+PUT {{baseUrl}}/api/admin/delivery/order/{{order_id}}/pickup
+Authorization: Bearer {{admin_token}}
+
+### 57. Rider confirms delivery
+PUT {{baseUrl}}/api/admin/delivery/order/{{order_id}}/delivered
+Authorization: Bearer {{admin_token}}
+
+### 58. User views the order delivery information
+GET {{baseUrl}}/api/user/delivery/order/{{order_id}}
+Authorization: Bearer {{user_token}}
+
+### WebSocket real-time notification endpoint
+# ws://localhost:8080/ws
+# The admin dashboard subscribes to /topic/admin; the customer web UI subscribes to /topic/user/{userId}
+
+### 59. User queries order history by status and order number
+GET {{baseUrl}}/api/user/order/list?status=5&number={{order_number}}
+Authorization: Bearer {{user_token}}
+
+### 60. User deletes an order from history (only Completed or Cancelled orders can be deleted)
+DELETE {{baseUrl}}/api/user/order/{{order_id}}
+Authorization: Bearer {{user_token}}

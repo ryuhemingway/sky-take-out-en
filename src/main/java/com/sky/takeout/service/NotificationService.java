@@ -1,0 +1,3 @@
+package com.sky.takeout.service;
+import org.springframework.messaging.simp.SimpMessagingTemplate; import org.springframework.stereotype.Service; import java.util.Map;
+@Service public class NotificationService { private final SimpMessagingTemplate messaging; public NotificationService(SimpMessagingTemplate messaging){this.messaging=messaging;} public void admin(String type,Object data){messaging.convertAndSend("/topic/admin",Map.of("type",type,"data",data));} public void user(Long userId,String type,Object data){messaging.convertAndSend("/topic/user/"+userId,Map.of("type",type,"data",data));} }

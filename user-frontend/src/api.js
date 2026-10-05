@@ -1,0 +1,2 @@
+export async function api(path,options={}){const token=localStorage.getItem('user_token');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...options.headers};if(token)headers.Authorization=`Bearer ${token}`;const r=await fetch(path,{...options,headers});const d=await r.json();if(!r.ok||d.code!==1)throw new Error(d.msg||'Request failed');return d.data}
+export const body=x=>JSON.stringify(x)
