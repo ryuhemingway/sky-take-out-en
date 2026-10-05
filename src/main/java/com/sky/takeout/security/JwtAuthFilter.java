@@ -25,6 +25,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = claims.getSubject();
                 boolean userToken = claims.get("userId") != null;
                 if (userToken) request.setAttribute("userId", ((Number) claims.get("userId")).longValue());
+                else if (claims.get("employeeId") != null) request.setAttribute("employeeId", ((Number) claims.get("employeeId")).longValue());
                 String role = userToken ? "ROLE_USER" : "ROLE_ADMIN";
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(username, null, List.of(new SimpleGrantedAuthority(role))));
             } catch (Exception ignored) { SecurityContextHolder.clearContext(); }

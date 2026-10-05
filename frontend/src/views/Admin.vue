@@ -1,17 +1,18 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { LayoutDashboard, Tags, UtensilsCrossed, PackageOpen, ClipboardList, LogOut, Store, Menu, X, Bike, TicketPercent, Bell, Wifi, WifiOff } from 'lucide-vue-next'
+import { LayoutDashboard, Tags, UtensilsCrossed, PackageOpen, ClipboardList, LogOut, Store, Menu, X, Bike, TicketPercent, Bell, Wifi, WifiOff, Users, UserCog } from 'lucide-vue-next'
 import { api } from '../api'
 import Overview from './Overview.vue'; import Categories from './Categories.vue'; import Dishes from './Dishes.vue'
 import Setmeals from './Setmeals.vue'; import Orders from './Orders.vue'; import Coupons from './Coupons.vue'; import Delivery from './Delivery.vue'
+import Customers from './Customers.vue'; import Employees from './Employees.vue'
 import { connectAdmin } from '../realtime'
 
 const router = useRouter(), active = ref('overview'), open = ref(false), shop = ref(1), notice = ref(''), refreshKey = ref(0)
 const connected = ref(false), showNotices = ref(false), notifications = ref([])
 let socket
-const items = [['overview','Overview',LayoutDashboard],['categories','Categories',Tags],['dishes','Dishes',UtensilsCrossed],['setmeals','Set Meals',PackageOpen],['orders','Orders',ClipboardList],['coupons','Coupons',TicketPercent],['delivery','Riders & Delivery',Bike]]
-const current = computed(() => ({ overview:Overview,categories:Categories,dishes:Dishes,setmeals:Setmeals,orders:Orders,coupons:Coupons,delivery:Delivery })[active.value])
+const items = [['overview','Overview',LayoutDashboard],['categories','Categories',Tags],['dishes','Dishes',UtensilsCrossed],['setmeals','Set Meals',PackageOpen],['orders','Orders',ClipboardList],['coupons','Coupons',TicketPercent],['delivery','Riders & Delivery',Bike],['customers','Customers',Users],['employees','Employees',UserCog]]
+const current = computed(() => ({ overview:Overview,categories:Categories,dishes:Dishes,setmeals:Setmeals,orders:Orders,coupons:Coupons,delivery:Delivery,customers:Customers,employees:Employees })[active.value])
 const unread = computed(() => notifications.value.filter(item => !item.read).length)
 async function getShop(){try{shop.value=(await api('/api/shop/status')).status}catch{}}
 async function toggleShop(){const next=shop.value?0:1;await api(`/api/shop/status?status=${next}`,{method:'PUT'});shop.value=next}

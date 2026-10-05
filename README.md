@@ -6,41 +6,62 @@ For the full project design, development retrospective, analysis of hard problem
 
 ## Tech Stack
 
-- Backend: Java 17, Spring Boot 3.3.5, MyBatis-Plus, MySQL 8, Spring Security, JWT, Redis, STOMP WebSocket
+- Backend: Java 17, Spring Boot 3.3.5, MyBatis-Plus, MySQL 8 (Google Cloud SQL), Spring Security, JWT, STOMP WebSocket
 - Frontend: Vue 3, Vite, Vue Router, @stomp/stompjs, lucide-vue-next
 
 ## Implemented Features
 
-- Admin and user login, with JWT-based permission isolation
-- Category, dish, and set meal management
+- Two roles: admins (employees) and customers, each with password login (BCrypt) and JWT-based permission isolation
+- Customer registration and profile: edit name and phone, change password, delete account
+- Admin management (full CRUD) of customers, employees, categories, dishes, set meals, coupons and riders
 - Customer menu, cart, and address book
 - Placing orders, simulated payment, cancellation, order reminders, and automatic cancellation on timeout
 - Coupon claiming, redemption, and stock management
-- Rider management, order assignment, pickup, and delivery
-- Shop open/closed control
+- Rider assignment, pickup, and delivery
+- Shop open/closed control (stored in MySQL)
 - Customer order queries and soft deletion
 - Real-time WebSocket notifications for the admin dashboard and customer web UI
 
-## Running Locally
+## Database on Google Cloud SQL
 
-1. Run `sql/schema.sql` on MySQL 8. If you already have a database from the Chinese version, run `sql/migrate-to-english.sql` on it once instead.
-2. Set your local database password in `src/main/resources/application-local.yml`.
-3. Start Redis. If Redis is unavailable in development, the shop status falls back to in-memory storage, but you should start Redis normally.
-4. Run the backend from the project root:
+The project database runs on MySQL in Google Cloud SQL. The web app can run on your own computer.
 
-```powershell
-D:\mysql\apache-maven-3.9.9\bin\mvn.cmd spring-boot:run
+1. In the Google Cloud console, open **SQL > Create instance > MySQL**. Choose MySQL 8.0, the cheapest edition/preset, and set a root password.
+2. Open the instance's **Connections > Networking** tab, keep **Public IP** on, and add your own IP address (`x.x.x.x/32`) as an authorized network. Each teammate adds their own IP.
+3. Copy the instance's public IP and load the schema from your computer:
+
+```bash
+mysql -h <PUBLIC_IP> -u root -p < sql/schema.sql
 ```
 
-5. Start the two frontends separately:
+4. Point the backend at Cloud SQL with environment variables (never commit the password):
 
-```powershell
+```bash
+export DB_URL="jdbc:mysql://<PUBLIC_IP>:3306/sky_take_out?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&sslMode=REQUIRED"
+export DB_USERNAME=root
+export DB_PASSWORD='your-root-password'
+```
+
+If the connection is refused, check that your current IP is still in the authorized networks. If it fails with an SSL error, try `sslMode=PREFERRED`.
+
+## Running Locally
+
+1. Set up the database (Cloud SQL above, or any MySQL 8 for development) and set `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`. Without them the backend uses a local MySQL at `127.0.0.1:3306`; `src/main/resources/application-local.yml` also works for local overrides.
+2. Run the backend from the project root with JDK 17 (newer JDKs break Lombok in this project):
+
+```bash
+mvn spring-boot:run
+```
+
+3. Start the two frontends separately:
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-```powershell
+```bash
 cd user-frontend
 npm install
 npm run dev
@@ -49,10 +70,13 @@ npm run dev
 Default addresses:
 
 - Backend: `http://localhost:8080`
-- Admin dashboard: `http://127.0.0.1:5173`
-- Customer web UI: `http://127.0.0.1:5174`
+- Admin dashboard: `http://localhost:5173`
+- Customer web UI: `http://localhost:5174`
 
-Development admin account: `admin / 123456`.
+Demo accounts (created automatically on first start):
+
+- Admin: `admin / 123456`
+- Customer: `dev-user-001 / 123456`
 
 ## Verification
 

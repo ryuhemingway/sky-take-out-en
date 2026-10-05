@@ -10,7 +10,6 @@ import com.sky.takeout.mapper.DishMapper;
 import com.sky.takeout.mapper.SetmealDishMapper;
 import com.sky.takeout.mapper.SetmealMapper;
 import jakarta.validation.Valid;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
@@ -56,7 +55,6 @@ public class SetmealController {
 
     @PostMapping
     @Transactional
-    @CacheEvict(cacheNames="menuSetmeals", allEntries=true)
     public ApiResponse<Long> add(@Valid @RequestBody SetmealRequest request) {
         Setmeal setmeal = request.toSetmeal();
         String error = validate(setmeal, null);
@@ -69,7 +67,6 @@ public class SetmealController {
 
     @PutMapping
     @Transactional
-    @CacheEvict(cacheNames="menuSetmeals", allEntries=true)
     public ApiResponse<Void> update(@Valid @RequestBody SetmealRequest request) {
         Setmeal setmeal = request.toSetmeal();
         if (setmeal.getId() == null || mapper.selectById(setmeal.getId()) == null) return ApiResponse.fail("Set meal not found");
@@ -83,7 +80,6 @@ public class SetmealController {
     }
 
     @PatchMapping("/{id}/status/{status}")
-    @CacheEvict(cacheNames="menuSetmeals", allEntries=true)
     public ApiResponse<Void> status(@PathVariable("id") Long id, @PathVariable("status") Integer status) {
         if (status != 0 && status != 1) return ApiResponse.fail("Status must be 0 or 1");
         Setmeal setmeal = mapper.selectById(id); if (setmeal == null) return ApiResponse.fail("Set meal not found");
@@ -91,7 +87,6 @@ public class SetmealController {
     }
 
     @DeleteMapping("/{id}")
-    @CacheEvict(cacheNames="menuSetmeals", allEntries=true)
     public ApiResponse<Void> delete(@PathVariable("id") Long id) {
         if (mapper.selectById(id) == null) return ApiResponse.fail("Set meal not found");
         mapper.deleteById(id); return ApiResponse.ok();

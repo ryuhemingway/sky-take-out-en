@@ -24,8 +24,14 @@ import {
   Wifi,
 } from "lucide-vue-next";
 const logged = ref(!!localStorage.getItem("user_token")),
-  username = ref("dev-user-001"),
-  name = ref("Test User"),
+  username = ref(""),
+  password = ref(""),
+  name = ref(""),
+  phone = ref(""),
+  registerMode = ref(false),
+  profile = ref({}),
+  pform = ref({ name: "", phone: "" }),
+  pwForm = ref({ oldPassword: "", newPassword: "" }),
   loginError = ref(""),
   categories = ref([]),
   dishes = ref([]),
@@ -103,19 +109,62 @@ function promoClick() {
   tab.value = "checkout";
 }
 async function login() {
+  loginError.value = "";
   try {
-    const d = await api("/api/user/login", {
+    const d = await api(registerMode.value ? "/api/user/register" : "/api/user/login", {
       method: "POST",
-      body: body({ username: username.value, name: name.value }),
+      body: body(registerMode.value
+        ? { username: username.value.trim(), password: password.value, name: name.value.trim(), phone: phone.value.trim() }
+        : { username: username.value.trim(), password: password.value }),
     });
     localStorage.setItem("user_token", d.token);
     logged.value = true;
     showLogin.value = false;
+    password.value = "";
     startRealtime();
     loadAll();
   } catch (e) {
     loginError.value = e.message;
   }
+}
+function logout() {
+  localStorage.removeItem("user_token");
+  socket?.deactivate();
+  logged.value = false;
+  showLogin.value = true;
+  tab.value = "menu";
+  cart.value = []; orders.value = []; addresses.value = [];
+  username.value = password.value = "";
+}
+async function openProfile() {
+  if (!logged.value) { showLogin.value = true; return; }
+  tab.value = "profile";
+  pwForm.value = { oldPassword: "", newPassword: "" };
+  try {
+    profile.value = await api("/api/user/profile");
+    pform.value = { name: profile.value.name || "", phone: profile.value.phone || "" };
+  } catch (e) { msg(e.message); }
+}
+async function saveProfile() {
+  try {
+    await api("/api/user/profile", { method: "PUT", body: body(pform.value) });
+    profile.value = { ...profile.value, ...pform.value };
+    msg("Profile saved");
+  } catch (e) { msg(e.message); }
+}
+async function changePassword() {
+  try {
+    await api("/api/user/profile/password", { method: "PUT", body: body(pwForm.value) });
+    pwForm.value = { oldPassword: "", newPassword: "" };
+    msg("Password changed");
+  } catch (e) { msg(e.message); }
+}
+async function deleteAccount() {
+  if (!confirm("Delete your account permanently? This cannot be undone.")) return;
+  try {
+    await api("/api/user/profile", { method: "DELETE" });
+    logout();
+  } catch (e) { msg(e.message); }
 }
 async function loadAll() {
   categories.value = await api("/api/user/menu/categories?type=1");
@@ -272,8 +321,8 @@ function startRealtime() {
     notifications.value = notifications.value.slice(0, 20); msg(text);
   }, value => connected.value = value);
 }
-onMounted(() => { if (logged.value) { loadAll(); startRealtime(); } });
-onUnmounted(() => socket?.deactivate());
+onMounted(() => { addEventListener("user-unauthorized", logout); if (logged.value) { loadAll(); startRealtime(); } });
+onUnmounted(() => { socket?.deactivate(); removeEventListener("user-unauthorized", logout); });
 </script>
 <template>
   <div class="app">
@@ -296,7 +345,7 @@ onUnmounted(() => socket?.deactivate());
             <button v-for="item in notifications" :key="item.time+item.text"><span>{{item.text}}</span><small>{{item.time}}</small></button>
           </section>
         </div>
-        <button class="user-btn" @click="showLogin = true">
+        <button class="user-btn" @click="openProfile">
           <UserRound :size="18" />{{ logged ? "My Account" : "Log In" }}
         </button>
       </div>
@@ -485,6 +534,32 @@ onUnmounted(() => socket?.deactivate());
             </button>
           </div>
         </div>
+        <div v-if="tab === 'profile'" class="sheet profile">
+          <div class="sheet-head">
+            <div>
+              <span class="kicker">ACCOUNT</span>
+              <h2>My Profile</h2>
+            </div>
+            <button class="icon-btn" @click="tab = 'menu'"><X /></button>
+          </div>
+          <p class="pf-info"><span>Username</span><b>{{ profile.username }}</b></p>
+          <p class="pf-info"><span>Member since</span><b>{{ profile.createTime ? new Date(profile.createTime).toLocaleDateString() : "" }}</b></p>
+          <form class="pf-form" @submit.prevent="saveProfile">
+            <label>Name<input v-model="pform.name" maxlength="32" required /></label>
+            <label>Phone<input v-model="pform.phone" /></label>
+            <button class="primary">Save</button>
+          </form>
+          <h3>Change Password</h3>
+          <form class="pf-form" @submit.prevent="changePassword">
+            <label>Current password<input v-model="pwForm.oldPassword" type="password" autocomplete="current-password" required /></label>
+            <label>New password<input v-model="pwForm.newPassword" type="password" autocomplete="new-password" minlength="6" required /></label>
+            <button class="primary">Change Password</button>
+          </form>
+          <div class="pf-actions">
+            <button class="primary" @click="logout">Log Out</button>
+            <button class="text-btn muted" @click="deleteAccount">Delete account</button>
+          </div>
+        </div>
         <div v-if="tab === 'orders'" class="sheet">
           <div class="sheet-head">
             <div>
@@ -544,12 +619,15 @@ onUnmounted(() => socket?.deactivate());
     <div v-if="showLogin" class="modal-backdrop">
       <section class="login-modal">
         <div class="login-icon"><UserRound /></div>
-        <h2>Log in to start ordering</h2>
-        <p>Use a dev account to enter the customer web UI</p>
-        <label>Username<input v-model="username" /></label
-        ><label>Name<input v-model="name" /></label>
+        <h2>{{ registerMode ? "Create account" : "Log in to start ordering" }}</h2>
+        <label>Username<input v-model="username" autocomplete="username" /></label
+        ><label>Password<input v-model="password" type="password" autocomplete="current-password" @keyup.enter="login" /></label
+        ><template v-if="registerMode"><label>Name<input v-model="name" maxlength="32" /></label
+        ><label>Phone (optional)<input v-model="phone" /></label></template>
         <p v-if="loginError" class="error">{{ loginError }}</p>
-        <button class="primary wide" @click="login">Log in and start ordering</button>
+        <button class="primary wide" @click="login">{{ registerMode ? "Create account" : "Log in" }}</button>
+        <button class="text-btn switch-mode" @click="registerMode = !registerMode; loginError = ''">{{ registerMode ? "Already have an account? Log in" : "New here? Create account" }}</button>
+        <p class="hint">Demo account: dev-user-001 / 123456</p>
       </section>
     </div>
     <div v-if="settlementError" class="modal-backdrop" @click.self="settlementError = ''">

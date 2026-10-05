@@ -19,7 +19,7 @@ public class SecurityConfig {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
-                        .requestMatchers("/api/admin/employee/login", "/api/user/login", "/api/user/menu/**", "/ws", "/ws/**", "/error").permitAll()
+                        .requestMatchers("/api/admin/employee/login", "/api/user/login", "/api/user/register", "/api/user/menu/**", "/ws", "/ws/**", "/error").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/shop/status").permitAll()
                         .requestMatchers("/api/admin/**", "/api/shop/status").hasRole("ADMIN")
                         .requestMatchers("/api/user/**").hasRole("USER")

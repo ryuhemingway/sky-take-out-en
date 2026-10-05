@@ -18,7 +18,6 @@ public class CategoryController {
         return ApiResponse.ok(mapper.selectList(new LambdaQueryWrapper<Category>().eq(type != null && !type.isBlank(), Category::getType, type).orderByAsc(Category::getSort)));
     }
     @PostMapping
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"menuCategories", "menuDishes", "menuSetmeals"}, allEntries = true)
     public ApiResponse<Void> add(@Valid @RequestBody Category category) {
         if (existsName(category.getName(), category.getType(), null)) return ApiResponse.fail("Category name already exists");
         category.setCreateTime(LocalDateTime.now());
@@ -29,7 +28,6 @@ public class CategoryController {
     }
 
     @PutMapping
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"menuCategories", "menuDishes", "menuSetmeals"}, allEntries = true)
     public ApiResponse<Void> update(@Valid @RequestBody Category category) {
         if (category.getId() == null || mapper.selectById(category.getId()) == null) return ApiResponse.fail("Category not found");
         if (existsName(category.getName(), category.getType(), category.getId())) return ApiResponse.fail("Category name already exists");
@@ -39,7 +37,6 @@ public class CategoryController {
     }
 
     @PatchMapping("/{id}/status/{status}")
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"menuCategories", "menuDishes", "menuSetmeals"}, allEntries = true)
     public ApiResponse<Void> changeStatus(@PathVariable Long id, @PathVariable Integer status) {
         if (status != 0 && status != 1) return ApiResponse.fail("Status must be 0 or 1");
         Category category = mapper.selectById(id);
@@ -51,7 +48,6 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
-    @org.springframework.cache.annotation.CacheEvict(cacheNames = {"menuCategories", "menuDishes", "menuSetmeals"}, allEntries = true)
     public ApiResponse<Void> delete(@PathVariable Long id) {
         if (mapper.selectById(id) == null) return ApiResponse.fail("Category not found");
         mapper.deleteById(id);

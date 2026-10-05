@@ -120,12 +120,27 @@ Content-Type: application/json
 
 {
   "username": "dev-user-001",
-  "name": "Test User"
+  "password": "123456"
 }
 
 > {%
     client.global.set("user_token", response.body.data.token);
 %}
+
+### 16a. Register a new customer account (returns the same shape as login)
+POST {{baseUrl}}/api/user/register
+Content-Type: application/json
+
+{
+  "username": "user-{{test_suffix}}",
+  "password": "123456",
+  "name": "Registered User",
+  "phone": "13900000000"
+}
+
+### 16b. Query my profile
+GET {{baseUrl}}/api/user/profile
+Authorization: Bearer {{user_token}}
 
 ### 17. Add a dish to the cart
 POST {{baseUrl}}/api/user/shoppingCart/add
